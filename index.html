@@ -167,8 +167,8 @@
 <body>
   <div class="page">
 
-    <h1>fq-manifestor: alpha release software, collaboratively developed with AI<sup><a href="#fn1">1</a></sup></h1>
-    <p class="subtitle">Generate <a href="https://amplicon-docs.qiime2.org/en/stable/how-to-guides/how-to-import.html#import-fastq-manifest">QIIME 2 paired-end fastq manifest files</a> — no installation required! </p>
+    <h1>fq-manifestor: Generate QIIME 2 paired-end fastq manifest files from your browser!</h1>
+    <p class="subtitle">fq-manifestor is alpha release software, and was collaboratively developed with AI<sup><a href="#fn1">1</a></sup>.</p>
 
     <div class="why">
       <h2>Why is this tool needed?</h2>
@@ -180,7 +180,7 @@
       <div class="step">
         <span class="step-num">1</span>
         <strong>Drop your FASTQ folder</strong>
-        <p>Drop the top-level folder containing your demultiplexed FASTQ files into the box below.<sup><a href="#fn2">2</a></sup></p>
+        <p>Drop the top-level folder containing your demultiplexed FASTQ files into the box below.<sup><a href="#fn2">2</a></sup> Your data won't leave your computer.</p>
       </div>
       <div class="step">
         <span class="step-num">2</span>
@@ -225,11 +225,11 @@
               <input type="text" id="split_pattern" value="_">
 
               <label for="f_read_pattern">Forward read pattern
-                <span class="hint">(regex identifying R1 files)</span></label>
+                <span class="hint">(regex identifying forward read files)</span></label>
               <input type="text" id="f_read_pattern" value="_R1_">
 
               <label for="r_read_pattern">Reverse read pattern
-                <span class="hint">(regex identifying R2 files)</span></label>
+                <span class="hint">(regex identifying reverse read files)</span></label>
               <input type="text" id="r_read_pattern" value="_R2_">
 
               <label for="filter_pattern">Filter pattern
