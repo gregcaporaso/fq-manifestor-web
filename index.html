@@ -162,6 +162,27 @@
       font-size: 0.83rem; white-space: pre; overflow-x: auto;
       margin: 0;
     }
+
+    /* Pattern options extras */
+    .regex-link { margin: 0.6rem 0 0; font-size: 0.8rem; color: #6b7280; }
+    .regex-link a { color: #2563eb; }
+    .pattern-hint { margin: 0 0 0.4rem; font-size: 0.82rem; color: #b45309; }
+    .pattern-hint a { color: #b45309; font-weight: 600; }
+
+    /* Paste filenames */
+    .paste-panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.1rem 1.2rem; margin-bottom: 1rem; }
+    .paste-panel label { font-weight: 700; font-size: 0.88rem; color: #374151; }
+    #paste-filenames {
+      display: block; width: 100%; margin-top: 0.5rem;
+      font-family: ui-monospace, monospace; font-size: 0.8rem;
+      border: 1px solid #d1d5db; border-radius: 4px;
+      padding: 0.5rem 0.7rem; resize: vertical;
+      background: #f9fafb; color: #111; line-height: 1.45;
+    }
+    #paste-filenames:focus {
+      outline: none; border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+    }
   </style>
 </head>
 <body>
@@ -213,16 +234,16 @@
         </div>
 
         <div class="panel">
-          <details>
+          <details id="pattern-options-details">
             <summary>Pattern options</summary>
             <div class="options-grid">
               <label for="fq_extensions">FASTQ extensions
                 <span class="hint">(comma-separated)</span></label>
               <input type="text" id="fq_extensions" value="fastq.gz, fq.gz">
 
-              <label for="split_pattern">Split pattern
-                <span class="hint">(regex; text before first match → sample ID)</span></label>
-              <input type="text" id="split_pattern" value="_">
+              <label for="sample_id_pattern">Sample ID pattern
+                <span class="hint">(regex with capture group, e.g. <code>(.*?)_</code> = text before first underscore)</span></label>
+              <input type="text" id="sample_id_pattern" value="(.*?)_">
 
               <label for="f_read_pattern">Forward read pattern
                 <span class="hint">(regex identifying forward read files)</span></label>
@@ -236,6 +257,7 @@
                 <span class="hint">(optional; only include matching paths)</span></label>
               <input type="text" id="filter_pattern" placeholder="(none)">
             </div>
+            <p class="regex-link">New to patterns? <a href="https://www.regular-expressions.info/quickstart.html" target="_blank" rel="noopener">Regular expressions quick start</a></p>
           </details>
 
           <div class="save-row">
@@ -252,6 +274,9 @@
       <div class="preview-panel">
         <h2>Manifest preview</h2>
         <div id="preview-status" class="preview-status"></div>
+        <p id="pattern-hint" class="pattern-hint" style="display:none">
+          No samples found — try opening <a href="#" id="pattern-hint-link">Pattern options</a> and adjusting the patterns to match your filenames.
+        </p>
         <textarea id="preview" readonly wrap="off" autocomplete="off"
           placeholder="Drop your FASTQ folder to see a preview…"></textarea>
       </div>
@@ -373,16 +398,16 @@ qiime tools import \
       var btn = document.getElementById('btn-download');
       if (_files.length === 0) { _setPreview('', ''); btn.disabled = true; return; }
 
-      var exts     = _param('fq_extensions').split(',').map(function(s) { return s.trim(); }).filter(Boolean);
-      var splitPat = _param('split_pattern');
-      var fPat     = _param('f_read_pattern');
-      var rPat     = _param('r_read_pattern');
-      var filter   = _param('filter_pattern');
+      var exts   = _param('fq_extensions').split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+      var sidPat = _param('sample_id_pattern').trim();
+      var fPat   = _param('f_read_pattern');
+      var rPat   = _param('r_read_pattern');
+      var filter = _param('filter_pattern');
 
       try {
-        var splitRe = new RegExp(splitPat);
-        var fRe     = new RegExp(fPat);
-        var rRe     = new RegExp(rPat);
+        var sidRe = new RegExp(sidPat);
+        var fRe   = new RegExp(fPat);
+        var rRe   = new RegExp(rPat);
 
         var files = _files.filter(function(f) {
           return exts.some(function(ext) { return f.name.endsWith('.' + ext); });
@@ -392,9 +417,9 @@ qiime tools import \
         var byId = {}, errs = [];
 
         files.forEach(function(f) {
-          var parts = f.name.split(splitRe);
-          if (parts.length < 2) { errs.push('No sample ID: ' + f.name); return; }
-          var sid   = parts[0];
+          var m = f.name.match(sidRe);
+          if (!m || !m[1]) { errs.push('No sample ID: ' + f.name); return; }
+          var sid = m[1];
           var isFwd = fRe.test(f.name);
           var isRev = rRe.test(f.name);
           if (!isFwd && !isRev) { errs.push('F/R not matched: ' + f.name); return; }
@@ -413,12 +438,18 @@ qiime tools import \
         var note = files.length + ' FASTQ files \u2192 ' + n + ' sample' + (n !== 1 ? 's' : '');
         if (errs.length) note += ' \u00b7 ' + errs.length + ' unmatched';
 
+        _setPatternHint(n === 0 && _files.length > 0);
         _setPreview(lines.join('\n') + '\n', note);
-        btn.disabled = false;
+        btn.disabled = n === 0;
       } catch(e) {
+        _setPatternHint(false);
         _setPreview('', 'Pattern error: ' + e.message);
         btn.disabled = true;
       }
+    }
+
+    function _setPatternHint(show) {
+      document.getElementById('pattern-hint').style.display = show ? '' : 'none';
     }
 
     function _setPreview(content, status) {
@@ -456,7 +487,14 @@ qiime tools import \
     }
 
     // Parameter listeners
-    ['fq_extensions', 'split_pattern', 'f_read_pattern', 'r_read_pattern', 'filter_pattern']
+    document.getElementById('pattern-hint-link').addEventListener('click', function(e) {
+      e.preventDefault();
+      var details = document.getElementById('pattern-options-details');
+      details.open = true;
+      details.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
+    ['fq_extensions', 'sample_id_pattern', 'f_read_pattern', 'r_read_pattern', 'filter_pattern']
       .forEach(function(id) {
         document.getElementById(id).addEventListener('input', _updatePreview);
       });
