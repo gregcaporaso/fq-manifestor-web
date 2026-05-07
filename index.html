@@ -201,7 +201,7 @@
       <div class="step">
         <span class="step-num">1</span>
         <strong>Drop your FASTQ folder</strong>
-        <p>Drop the top-level folder containing your demultiplexed FASTQ files into the box below.<sup><a href="#fn2">2</a></sup> Your data won't leave your computer.</p>
+        <p>Drop the top-level folder containing your demultiplexed FASTQ files into the box below, or paste a list of the file names that you want to import.<sup><a href="#fn2">2</a></sup> Your data won't leave your computer.</p>
       </div>
       <div class="step">
         <span class="step-num">2</span>
@@ -231,6 +231,13 @@
           <p>or</p>
           <button type="button" id="btn-browse" class="btn-browse">Browse…</button>
           <p id="drop-count" class="drop-count"></p>
+        </div>
+
+        <div class="paste-panel">
+          <label for="paste-filenames">Or paste filenames
+            <span class="hint">(one per line; useful for files on a remote machine)</span></label>
+          <textarea id="paste-filenames" rows="5" spellcheck="false"
+            placeholder="sample1_R1.fastq.gz&#10;sample1_R2.fastq.gz&#10;sample2_R1.fastq.gz&#10;…"></textarea>
         </div>
 
         <div class="panel">
@@ -348,6 +355,7 @@ qiime tools import \
       _setStatus('Reading files\u2026');
       var files = [];
       await _readChildren(entry, '', files);
+      document.getElementById('paste-filenames').value = '';
       _processFiles(files, entry.name);
     });
 
@@ -362,6 +370,7 @@ qiime tools import \
         if (slash >= 0) rp = rp.slice(slash + 1);
         return { name: f.name, relativePath: rp };
       });
+      document.getElementById('paste-filenames').value = '';
       _processFiles(mapped, folderName);
     });
 
@@ -498,6 +507,20 @@ qiime tools import \
       .forEach(function(id) {
         document.getElementById(id).addEventListener('input', _updatePreview);
       });
+
+    document.getElementById('paste-filenames').addEventListener('input', function() {
+      var text = this.value.trim();
+      if (!text) { _processFiles([], ''); return; }
+      var files = text.split('\n')
+        .map(function(line) { return line.trim(); })
+        .filter(Boolean)
+        .map(function(line) {
+          var parts = line.split('/');
+          var name = parts[parts.length - 1];
+          return { name: name, relativePath: name };
+        });
+      _processFiles(files, '');
+    });
   </script>
 </body>
 </html>
